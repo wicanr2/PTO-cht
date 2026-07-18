@@ -26,6 +26,8 @@ def run(cmd):
 def main():
     # 0. 產生中文化 UI 圖檔
     run([sys.executable, 'tools/render_ui_images.py'])
+    # 0.5 把中文化 UI 圖封回 NPK .TK2
+    run([sys.executable, 'tools/patch_ui_tk2.py'])
     # 1. 重新產生 patch/*
     run([sys.executable, 'tools/inject_text_tk2.py'])
     run([sys.executable, 'tools/inject_names.py'])

@@ -28,6 +28,14 @@
 - 原版 `WING.DLL` 已放入 prefix，但 Wine 仍優先使用內建實作
 - 遊戲啟動時檢查 256 色顯示，Wine 預設 24-bit 會顯示錯誤
 
+### 執行問題（2026-07-18 實測更新）
+
+- **256 色已解**：用 `Xvfb :95 -screen 0 1024x768x8` 提供 8-bit 顯示即可通過檢查
+- **Wine 16-bit loader 不吃 DllOverrides**：`MODULE_LoadModule16` 無條件優先載入內建 `wing.dll16`；繞道 = `tools/patch_wine_wing.py` 把 EXE import `WING`→`XING` + 提供改名後的原生 `XING.DLL`
+- **builtin wing.dll16**：WinG init 全部成功（CreateDC/CreateBitmap/GetDIBPointer 回傳有效 segptr），主視窗可建立（中文化標題正常）；唯一缺口是 WinGGetDIBPointer 不填 BITMAPINFO
+- **原生 XING.DLL**：可被載入，但 WinGCreateBitmap 內部需要 display driver DIB engine（WINGDIB.DRV），Wine 沒有 → 回 NULL → 遊戲 NULL memset 當機（seg11:50c6）
+- **目前擋路點**：builtin 路線下，遊戲完成 WinG+palette 後對 handle 0 做 `_llseek/_hread(0xfb76)/_lclose`（全失敗），然後在 seg5:5b9f 的 huge-pointer 正規化函式 NULL 解參照。整個 trace 中遊戲**從未發出 file-open 呼叫**，handle 0 來源待查（原版 EXE 同點同樣 crash，與中文化無關）
+
 ## 待解決
 
 ### 1. 中文字型

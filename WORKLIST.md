@@ -26,10 +26,21 @@
 
 ## 進行中
 
+- [ ] Windows 10 原生執行驗證（otvdm 包，主線）
+  - otvdm 有完整 WinG 實作
+  - CD 需求待處理（掛 cue/bin 映像或繞過）
 - [ ] 逆向 `TEKE2WIN.EXE` 繪字管線與字體格式
   - 目前發現：APPMENU / APPVERSION 走 Windows 資源，可安全取代
   - 遊戲內文字疑似自訂 bitmap font，尚未定位 `drawString` / `drawGlyph`
-- [ ] NPK UI 圖檔中文化（已完成 MEIREI_000、MAKE_000、MAKE_001 初版）
+- [ ] NPK UI 圖檔中文化（MEIREI_000、MAKE_000、MAKE_001 初版已封回）
+
+## 已完成（2026-07-19 追加）
+
+- [x] UI 圖檔中文化封回管線：`tools/patch_ui_tk2.py` + 接入 `tools/build_patch.py`
+- [x] 逆向工具：`tools/ne_relocs.py`（NE relocation 解析）、`tools/patch_wine_wing.py`（XING hack）
+- [x] FAT16 映像工具：`tools/make_fat16_img.py` / `fat16_edit.py` / `fat16_add.py`
+- [x] Wine 執行問題調查（見 SESSION_NOTES「關鍵調查結論」）
+- [x] 參考環境：86Box + MS-DOS 6.22 跑起 Windows 3.1 + 遊戲至 KOEI logo
 
 ## 待辦
 
