@@ -14,6 +14,7 @@ FILES = [
     'KSNAME.TK2', 'SSNAME.TK2', 'MSG1.TK2',
     'ARDATA', 'GRDATA', 'KDATA', 'KSDATA', 'NCTDATA', 'PLDATA',
     'SJDATA', 'SSDATA', 'STDATA', 'TKDATA', 'TEKE2WIN.EXE',
+    'MAKE.TK2', 'MEIREI.TK2',
 ]
 
 
@@ -23,6 +24,8 @@ def run(cmd):
 
 
 def main():
+    # 0. 產生中文化 UI 圖檔
+    run([sys.executable, 'tools/render_ui_images.py'])
     # 1. 重新產生 patch/*
     run([sys.executable, 'tools/inject_text_tk2.py'])
     run([sys.executable, 'tools/inject_names.py'])

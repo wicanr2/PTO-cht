@@ -29,7 +29,7 @@
 - [ ] 逆向 `TEKE2WIN.EXE` 繪字管線與字體格式
   - 目前發現：APPMENU / APPVERSION 走 Windows 資源，可安全取代
   - 遊戲內文字疑似自訂 bitmap font，尚未定位 `drawString` / `drawGlyph`
-- [ ] NPK UI 圖檔中文化（等 image review 結果）
+- [ ] NPK UI 圖檔中文化（已完成 MEIREI_000、MAKE_000、MAKE_001 初版）
 
 ## 待辦
 
