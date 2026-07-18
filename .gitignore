@@ -1,0 +1,28 @@
+# 原版遊戲資料與衍生資產（版權所有，不提供）
+assets/origin/
+assets/images/
+assets/extracted/
+assets/patched/
+patch/*.TK2
+patch/*.EXE
+patch/*.HLP
+dist/
+dist-all/
+*.AppImage
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# 編輯器
+.vscode/
+.idea/
+*~
+
+# 暫存
+*.tmp
+*.bak
+scratch/
