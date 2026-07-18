@@ -3,9 +3,7 @@ assets/origin/
 assets/images/
 assets/extracted/
 assets/patched/
-patch/*.TK2
-patch/*.EXE
-patch/*.HLP
+patch/
 dist/
 dist-all/
 *.AppImage
