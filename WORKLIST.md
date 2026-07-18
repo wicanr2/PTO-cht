@@ -37,6 +37,8 @@
 - [ ] 產生中文字型 atlas（Big5 子集）與 EXE 2-byte hook（若可行）
 - [ ] NPK 圖檔中文標題／按鈕重繪與回填
 - [ ] 打包：Linux AppImage（Wine）與 Windows（otvdm）
+  - Windows `packaging/build_windows.sh` 已可產生 `dist/PTO2-cht-windows.zip`（otvdm + 中文化遊戲 + 使用說明）
+  - Linux `packaging/build_appimage.sh` 已產生 AppDir；需安裝 appimagetool 與解決 Wine WinG 問題
 - [ ] 實機驗證：主選單 → 新遊戲 → 劇本 → 存檔 → 離開
 - [ ] 玩家文件：`packaging/README.md`、使用說明
 

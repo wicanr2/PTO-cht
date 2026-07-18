@@ -7,6 +7,7 @@ assets/patched/
 patch/
 dist/
 dist-all/
+vendor/
 *.AppImage
 *.zip
 
