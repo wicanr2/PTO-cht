@@ -59,6 +59,14 @@
 - 逆向 `TEKE2WIN.EXE` 的繪字管線，加入繁體中文字型 atlas 與 2-byte hook
 - 最後打包成 Linux AppImage 與 Windows 可執行包
 
+## 📸 目前進度截圖
+
+繁體中文 Windows 3.1（86Box）實機運行：
+
+| 開場動畫 | 主選單（亂碼修復中） | 劇本畫面 |
+|---|---|---|
+| ![開場動畫](docs/shots/cht_final_06.png) | ![主選單](docs/shots/cht_final_07.png) | ![劇本畫面](docs/shots/12_ingame.png) |
+
 ## 📁 目錄結構
 
 ```
