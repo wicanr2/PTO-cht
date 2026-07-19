@@ -177,6 +177,102 @@ WinGCreateBitmap16(640x-416x8) 成功（hbm=0x49/0x4b）→ WinGGetDIBPointer(hb
   breakpoint 不能下、stack 不能讀；考慮 patch helper 0x5b72 把 caller return
   addr 寫入固定位置再觀察，或用 gdb attach 32-bit process 讀 LDT）
 
+#### 2026-07-19 第四輪（timebox 用盡）：caller-capture 成功，NULL = grpseg buffer，根因 = 開頭動畫/CD 狀態機未走
+
+**caller-capture 法（成功，可重用）**：無 code cave → 把 seg110（錯誤字串 data seg，
+其使用路徑已被 check patch nop 掉）flags 0xc51→0xd50 翻成 code seg 當 cave；
+helper seg5:0x5b72 入口改 `lcall seg110:0`（在 seg5 reloc 區尾追加 PTR32/INTERNAL
+entry，slack 充足）；cave 內 pusha 後若 ptr seg arg==0 就 `int 21h AH=40 BX=2`
+（stderr）dump stack 20 bytes，再執行原 prologue 並 `jmp far seg5:0x5b78`
+（seg110 也加 reloc）。工具：`/tmp/teke_wine/instrument.py`、`instrument2.py`。
+
+**capture 結果**：crash 時 helper 的 caller = **seg5:0x00b9（lcall site 0x00b4）**，
+傳入 ptr = **ds:0x8096 = 0000:0000**（grpseg buffer 從未被寫入）。
+painter 函式 = seg5:0x0000–0x00bf（enter 6,0；arg=[bp+6] index）。
+
+**為何 [0x8096] 是 NULL**：
+
+- [0x8096] 的寫入者：seg11:0x217d（函式 0x2154，載 grpseg+grpseg2+readseg）與
+  seg11:0x225b（函式 0x2232）。呼叫鏈：seg5:0x6232（si==0 分支）→ seg3:0x434a
+  → 0x2154；seg5:0x5f85 → 0x2232
+- `+global` trace：0x2154 的 GlobalAlloc(62955) 與 0x2232 的 GlobalAlloc(49153)
+  **從未出現** → 兩個 loader 都沒跑過
+- 開頭流程：seg11:0x164d → **seg5:0x6116（opening 函式）**：`call 0x5f24` →
+  `lcall seg6:0x232c`（**CD 檢查 retry loop**，訊息 Big5「無法開啟光碟機。」
+  ds:0x4346；內部 seg6:0x1834 = mciSendCommand(MCI_OPEN 0x803, type ds:0x421e)，
+  [0x4218]=device id）→ `lcall seg11:0x209a`（"OPEN.AVI" ds:0x34f5，AVI 開啟）
+  → `call 0x5f7e`（grpseg loader，0x613d）→ 狀態機 0x6140+
+- **CD 事實**：OPEN.AVI（17MB）、SCE0–9.AVI、MCIAVI.DR_ 都在 CD 資料軌
+  （label "PTO2"）；硬碟安裝目錄沒有。bin/cue 是 MODE1/2352，python 抽 2048
+  user data 轉 /tmp/teke_wine/track1.iso 後 7z 可讀
+- 實驗：遊戲目錄放 OPEN.AVI、dosdevices d:→cddrive、.windows-label=PTO2、
+  registry Drives d:=cdrom、patch seg6:0x1834/0x1872 → return 1
+  —— **全部照樣 crash 同點**；且 `+mci,+mmio,+file` 完全無 OPEN.AVI/cdaudio 活動
+  → crash 發生在 CD/AVI 流程**之前**
+- **未解的最後一環**：對 painter seg5:0x0000 入口下同法 instrument（dump caller）
+  完全沒觸發（patch 已驗證在檔案內）→ painter 不是從 0x0000 進入的，
+  而是被某呼叫者 **tail-jump 進 0x0006**（共享 prologue 尾巴）或直接 near-call
+  0x0006。seg5 內唯一 near call → 0x0000 在 0x0106；tail-jump 來源待查
+  （疑為狀態機的間接跳轉表）
+- **目前機制總結**：Wine 下啟動後，某個早期狀態分歧讓遊戲直接進入需要
+  grpseg 的 paint 路徑，而 grpseg loader（依賴 CD/開頭動畫流程）沒跑 →
+  painter 以 NULL far ptr 呼叫 helper → seg5:0x5b9f。
+  真 Win3.x 下該 paint 路徑不會在 loader 之前執行（時序/狀態差異，
+  可能與 MMSYSTEM/MCI/timer 初始化有關）
+#### 2026-07-19 第六輪（最終）：grpseg 預載 patch 生效，第一層 crash 修復；第二層 selector crash 待查
+
+- **production cave v3 成功**（無 dump）：helper seg5:0x5b72 入口 → seg110:0x00
+  cave（cmp [0x8098],0 → lcall seg11:0x2154 → 回填堆疊 index 槽
+  [sp+0x1e]/[sp+0x20] → 原 prologue → jmp far 0x5b78）。reloc site 口訣：
+  **operand site = 指令位址+1**（lcall/jmpfar 皆同），務必以腳本 len 計算
+- **實測確認（debug dump + winedbg register dump）**：
+  - loader 執行：GlobalAlloc(718315/192000/65828)×3 + GlobalLock 回
+    0717:0000/076f:0000/0787:0000；ds:0x8098=0x0717 ✓
+  - **第一層 NULL crash（painter seg5:0x00b4）已通過**
+  - **第二層 crash**：同一 helper（EIP=5b9d mov es,dx），ES=**0x0497**（無效
+    selector），EAX=0x078700e4、EDX=0x076f0090 → 後續 helper 呼叫用到
+    grpseg2/readseg 的 selector（0x76f/0x787），計算出無效 selector 0x0497
+    （較早配置、疑已釋放或跨 buffer 的 selector 算術差異）
+- **整合**：`tools/patch_wine_checks.py` 現在一条指令對乾淨 EXE 套用
+  256 色/640x480 bypass + grpseg 預載（含 seg110 翻 code、cave 寫入、
+  3 個 NE reloc 追加），冪等、patch 前驗證 bytes
+- 截圖：畫面仍黑（第二層 crash 在可視內容出現前），無 wine_menu.png
+- 下一步：對第二層 crash 做 caller-capture（方法成熟：tools/instrument*.py），
+  確認 0x0497 來源（疑某個早期 GlobalAlloc/FreeResource 後的懸空 selector，
+  或 Wine 與真 Win3.x 的 selector 生命週期差異）；再往下是 OPEN.AVI/CD 狀態機
+  （track1.iso + d: 映射 + label「PTO2」已備）
+
+**Wine 版 timebox 用盡（4 輪）**。構建環境保留：/tmp/winebuild、/tmp/i386、
+/tmp/flex-install、/tmp/wineroot（shadow tree）、/tmp/teke_wine（scratch EXE、
+instrument 工具、track1.iso、cddrive/OPEN.AVI）。
+
+#### 2026-07-19 第五輪：方案 2「提前呼叫 grpseg loader」—— 95% 打通，殘留 cave 細節 bug
+
+- **注入法**：helper seg5:0x5b72 入口改 `lcall seg110:cave`（沿用 seg110 翻 code seg
+  + 追加 PTR32 reloc 法，工具 `tools/patch_loader*.py`）。cave：
+  `cmp byte [0x8098],0` → 為 0 就 `lcall seg11:0x2154`（grpseg loader）
+  → 再把 ds:[0x8096]/[0x8098] 回填到呼叫者堆疊上的 ptr 參數槽
+  （entry[sp+0xc]/[sp+0xe]，pusha+push ds 後 = [sp+0x1e]/[sp+0x20]）
+  → 執行原 prologue → `jmp far seg5:0x5b78`
+- **已驗證**：
+  - cave 機制可行（int3 中斷實測確認進入 cave；`+global` trace 確認 loader 執行：
+    GlobalAlloc(718315/192000/65828) × 3 成功，K32WOWGlobalLock16 各回傳
+    0717:0000 / 076f:0000 / 0787:0000 → ds:0x8098=0x0717 有寫入）
+  - 重要認知：**grpseg far ptr = sel:0000，ds:0x8096（offset 部分）本來就是 0**；
+    判空要看 ds:0x8098（selector 部分）
+- **殘留問題（未解，timebox 到）**：
+  - debug 版 cave（含 int21 dump）實測 loader 有跑、[0x8098] 有寫，但 dump 出的
+    堆疊 ptr 仍為 0、crash 依舊 5b9d——堆疊槽位/時序仍有出入；另一無 dump 變種
+    出現新 fault（IP=0x0002 讀 0x5b70，疑 cave 尾部 jmp far reloc site 算錯
+    （0x49→應 0x44，已於 scratch 修正但未及全驗證）
+  - 下一步（很有希望）：用乾淨的 production cave（無 dump）重做：
+    helper 入口 → cave：`cmp [0x8098],0 / jne skip / lcall 0x2154 / skip:
+    mov ax,[sp+0x20] / test / jnz done / mov [sp+0x1e],[0x8096] /
+    mov [sp+0x20],[0x8098] / done: popa; prologue; jmpfar 0x5b78`（site 逐一核對），
+    預期可讓 painter 拿到 sel:0000 有效 ptr 通過第一關
+  - 注意：即使過了 painter，後續 OPEN.AVI/CD 狀態機（seg5:0x6116 族）才是
+    主線劇情；本 patch 只是讓畫面初始化不再 NULL crash
+
 ### 3. 包裝
 
 - Windows：`packaging/build_windows.sh` 已產生 `dist/PTO2-cht-windows.zip`（otvdm + 中文化遊戲）

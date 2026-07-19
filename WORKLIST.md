@@ -32,6 +32,8 @@
   - 已跑起 Windows 3.1 + 遊戲至 KOEI logo；需繼續推進到主選單與遊戲內
   - 中文化檔案用 `tools/fat16_edit.py` / `fat16_add.py` 注入 `msdos_hdd.img` 後在 86Box 內驗證
   - VM 設定：`vendor/86box/vm421/86box.cfg`（注意 `gfxcard = none` 待補顯示卡設定）
+- [ ] **主選單亂碼修復（2026-07-19 收尾時的最新卡點）**：86Box 繁中 Win3.1（`win31cht_hdd.img`）已可進遊戲——開場動畫可播、CD 音樂正常、主選單出現，但**選單文字亂碼**。假說：日版殘留的 DBCS glyph 分派器（seg11:0x9016，SJIS lead-byte 範圍 0x81-0x9F/0xE0-0xFC）把 Big5 lead byte 0xA1-0xFE 當單 byte 拆開；視窗標題「提督II」正常（Windows 系統字型繪），遊戲自繪文字全亂。明天第一步：反組譯確認 seg11:0x9016（或其上游）的 lead-byte 檢查，patch 成 Big5 範圍 0x81-0xFE（或 ISType… 改 hook）
+- [ ] 86Box 映像可玩後：同步 `play_hdd.img` → 跑 `packaging/build_local_full.sh` 組完整本機包 → 驗收
 - [ ] 逆向 `TEKE2WIN.EXE` 繪字管線與字體格式（背景 subagent 進行中）
   - 目前發現：APPMENU / APPVERSION 走 Windows 資源，可安全取代
   - 遊戲內文字疑似自訂 bitmap font，尚未定位 `drawString` / `drawGlyph`
@@ -58,7 +60,8 @@
 - [x] **EXE 內嵌字串翻譯注入**（2026-07-19）：`tools/extract_exe_strings2.py` 萃出 0xC0000–0xCBE00 共 1782 字串，1349 已譯（75.7%，留空為檔名/格式符/class name），`tools/inject_exe_ui_strings.py` 注入並接入 `build_patch.py`；NEW GAME→新遊戲、劇本名與劇情長文全數中文化，0 筆超長失敗
 - [x] **Wine wing.dll16 修補備妥**：`vendor/wine-src/wine-9.0/`（9.0 源碼），`WinGGetDIBPointer16` 已補 BITMAPINFO 填寫，待確認 crash 根因後決定是否重編
 - [x] **256 色/解析度檢查 bypass**（2026-07-19）：`tools/patch_wine_checks.py` **v2**（只 nop 四個失敗分支：file 0x92b3e/0x92b45/0x92b64/0x92b6d，保留 surface 註冊鏈；v1 整函式 retf 會造成 count=0 假像，已作廢），24-bit Xvfb 實測通過；待接入 `build_patch.py`
-- [x] **WinG crash 根因確認**（2026-07-19）：原版/patched 行為一致（非中文化迴歸）；crash @ seg5:0x5b9f 是遊戲讀 `WinGGetDIBPointer16` 未回填的 BITMAPINFO（+0x0c biPlanes）→ NULL+0x0C。Wine builtin wing.dll16 的已知缺陷，遊戲側無分支可跳 → 解法：重編 wing.dll16（源碼與修補已備於 vendor/wine-src）
+- [x] **WinG crash 根因確認**（2026-07-19）：原版/patched 行為一致（非中文化迴歸）；crash @ seg5:0x5b9f 是 grpseg title buffer（ds:0x8096）未載入 → painter 拿 NULL huge-ptr。Wine 下開頭狀態分歧讓 paint 搶在 grpseg loader 前執行（真 Win3.x 不會）
+- [x] **Wine patch 整合**（2026-07-19 結案）：`tools/patch_wine_checks.py` 一指令全套——256 色/640x480 bypass + grpseg 預載 cave（seg110 翻 code seg + NE reloc 注入，第一層 crash 已修復）+ 自編 wing.dll16（BITMAPINFO 回填，`vendor/wine-dlls/` + `docs/WING_DLL16_BUILD.md`）。**殘留**：第二層 selector crash（ES=0x0497 懸空 selector，方向已明待 caller-capture）+ CD/AVI 狀態機未驗 → Wine 版暫不可玩，估計再 1–2 session
 - [x] **反組譯函數地圖**（2026-07-19）：`tools/ne_disasm.py`（NE 完整解析 + capstone 16-bit + anchor-guided 掃描），產出 `docs/disasm/`：117 segments、3,673 函數、14,363 far call 全解析、import 呼叫點交叉驗證通過、三 bug 點反組譯摘錄。是未來 Win32 重編的基礎資產
 - [x] **繁體中文 Win3.1 取得**（2026-07-19）：3.10.0.151 繁體中文版 ISO（22.5MB）+ S3/SB16/WinG/Win32s 驅動，存 `vendor/win31cht/`（來源：使用者提供之 Google Sites 教學頁的 Drive 連結）
 

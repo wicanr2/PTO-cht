@@ -57,3 +57,24 @@
 - Repo：`https://github.com/wicanr2/PTO-cht`
 - 分支：`master`
 - 最新 commit 已 push
+
+## 2026-07-19 深夜收尾狀態（明天接續點）
+
+### 今天完成
+- EXE 內嵌字串翻譯注入（1349/1782，`inject_exe_ui_strings.py`）
+- Big5 GDI 字型 patch（`patch_big5_font.py`）
+- 反組譯地圖（`tools/ne_disasm.py` + `docs/disasm/`）
+- 繁體中文 Win3.1 ISO 取得並裝進 86Box（`win31cht_hdd.img`，ET4000AX 內建 256 色驅動）
+- **86Box 繁中線實測：開場動畫可播、CD 音樂正常、主選單可進、視窗標題中文正常**
+- Wine 線結案（256 色 bypass + grpseg 預載第一層修復整合進 `patch_wine_checks.py`；第二層 selector crash 未修，暫停）
+- `play.sh` 一鍵啟動（vm_play，DISK BOOT FAILURE 已修：nvr/CMOS 與殘留 process 問題）
+
+### 明天第一件事
+**主選單亂碼**：遊戲自繪文字全亂（Big5 被當單 byte 拆），視窗標題正常。假說：seg11:0x9016 日版 DBCS glyph 分派器的 SJIS lead-byte 範圍（0x81-0x9F/0xE0-0xFC）不符 Big5（0xA1-0xFE）。
+→ `.venv/bin/python tools/ne_disasm.py assets/patched/PTO2WIN/TEKE2WIN.EXE --func 11:9016` 開始，找 lead-byte 檢查 patch 成 0x81-0xFE。
+修好後：映像同步 play_hdd.img → `packaging/build_local_full.sh` → 驗收 → push。
+
+### 環境注意
+- 測試 VM 與 play VM 不可同時跑（nvr/CMOS 會互寫 → DISK BOOT FAILURE）
+- Xvfb :95/:96/:97/:98 可能還開著，可用可殺
+- /tmp/winebuild、/tmp/wineroot、/tmp/teke_wine 是 Wine 線保留環境（重開機會消失，需重建就照 docs/WING_DLL16_BUILD.md）
