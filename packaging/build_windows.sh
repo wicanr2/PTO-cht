@@ -4,7 +4,7 @@ set -e
 
 GAME_DIR="${1:-assets/patched/PTO2WIN}"
 DIST_DIR="dist/windows"
-OTVDM_URL="https://github.com/otya128/winevdm/releases/download/v0.8.0/otvdm-v0.8.1.zip"
+OTVDM_URL="https://github.com/otya128/winevdm/releases/download/v0.9.0/otvdm-v0.9.0.zip"
 OTVDM_DIR="vendor/otvdm"
 
 echo "=== 建立 Windows 可執行包 ==="
@@ -15,8 +15,9 @@ mkdir -p vendor
 if [ ! -d "$OTVDM_DIR" ]; then
     echo "下載 otvdm..."
     curl -L -o /tmp/otvdm.zip "$OTVDM_URL"
+    rm -rf vendor/otvdm-v0.9.0 vendor/otvdm-v0.8.1
     unzip -q /tmp/otvdm.zip -d vendor/
-    mv vendor/otvdm-v0.8.1 "$OTVDM_DIR"
+    mv vendor/otvdm-v0.9.0 "$OTVDM_DIR"
 fi
 
 # 2. 準備輸出目錄
@@ -60,11 +61,28 @@ EOF
 cat > "$DIST_DIR/使用說明.txt" <<'EOF'
 提督之決斷 II 繁體中文化（Windows 版）
 
-1. 執行 play.bat 啟動遊戲。
+【啟動方式】
+1. 解壓縮後，執行 play.bat 啟動遊戲。
 2. 若出現 SmartScreen 警告，請點「更多資訊」→「仍要執行」。
 3. 本包使用 otvdm（WineVDM）執行 Win16 遊戲，無需安裝原版 Windows 3.x。
-4. 若需要 CD 音樂，請把原版 CD 映像（.bin/.cue）掛載後再執行。
-5. 本中文化補丁僅供個人使用，請勿公開散佈。
+
+【關於 CD（重要）】
+本遊戲啟動時會檢查原版 CD（MCI cdaudio）。若沒有掛載 CD，會出現：
+  - 「Can't open CD-ROM DEVICE.」（找不到 CD 裝置）
+  - 「Please insert P.T.O. II's CD-ROM.」（有裝置但讀不到光碟）
+要正常遊玩（含開場動畫與 CD 音樂），請掛載原版 CD 映像：
+  1. 下載免費的 WinCDEmu（https://wincdemu.sysprogs.org/）
+  2. 把原版 CD 映像（Pacific.Theater.of.Operations.2.cue）掛載成虛擬光碟
+     （cue/bin 含資料軌與音軌，請務必用支援 cue 的工具，Windows 內建掛載只吃 .iso）
+  3. 再執行 play.bat
+
+【沒有 CD 時】
+若出現「Please insert P.T.O. II's CD-ROM.」對話框，按「Cancel」可略過，
+但開場內容與 CD 音樂會無法播放。建議還是掛載 CD 映像。
+
+【其他】
+- otvdm.ini 已隨附預設值，一般情況不需修改。
+- 本中文化補丁僅供個人使用，請勿公開散佈。
 EOF
 
 # 8. 壓縮
