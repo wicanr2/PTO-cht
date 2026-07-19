@@ -34,3 +34,9 @@ scratch/
 pto_cht_transfer.tar.gz
 session_backup/
 dist-local/
+
+# 截圖只保留精選三張上 repo
+docs/shots/*
+!docs/shots/cht_final_06.png
+!docs/shots/cht_final_07.png
+!docs/shots/12_ingame.png
