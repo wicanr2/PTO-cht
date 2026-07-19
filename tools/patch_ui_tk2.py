@@ -12,7 +12,7 @@ IMG_DIR = Path('assets/images')
 ZH_DIR = Path('assets/images_zh')
 OUT_DIR = Path('patch')
 
-TARGETS = ['MEIREI.TK2', 'MAKE.TK2']
+TARGETS = ['MEIREI.TK2', 'MAKE.TK2', 'END_SF.TK2', 'OP4_BC.TK2']
 
 
 def main():

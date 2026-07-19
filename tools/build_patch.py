@@ -33,6 +33,10 @@ def main():
     run([sys.executable, 'tools/inject_names.py'])
     run([sys.executable, 'tools/inject_msg1.py'])
     run([sys.executable, 'tools/inject_exe_strings.py'])
+    # 必須在 inject_exe_strings（從 origin 重建 patch/TEKE2WIN.EXE）之後、
+    # patch_big5_font（就地修改）之前執行
+    run([sys.executable, 'tools/inject_exe_ui_strings.py'])
+    run([sys.executable, 'tools/patch_big5_font.py'])
 
     # 2. 複製原始檔案並覆蓋
     if OUT_DIR.exists():

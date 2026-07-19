@@ -2,3 +2,5 @@ file,english,chinese,note
 MEIREI_000.png,"ORDERS / To: / From:","命令 / 給： / 自：","命令面板標題與收件人欄位"
 MAKE_000.png,"GAME OVER","遊戲結束","遊戲結束畫面"
 MAKE_001.png,"THE END","完結","結局畫面"
+END_SF_001.png,"THE END","完","結局畫面（沿用 END_SF_000 風格重繪）"
+OP4_BC_003.png,"WWIIゲーム 提督の決断II","第二次世界大戰 提督的決斷II","開場標題（原為日文，改中文標題）"

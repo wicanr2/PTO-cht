@@ -20,12 +20,27 @@ mkdir -p "$APP_DIR/usr/bin" "$APP_DIR/usr/share/pto2-cht"
 # 複製遊戲
 cp -r "$GAME_DIR" "$APP_DIR/usr/share/pto2-cht/PTO2WIN"
 
-# AppRun：用系統 wine 啟動
+# AppRun：用系統 wine 啟動（設 cp950 locale + 新細明體字型替代）
 cat > "$APP_DIR/AppRun" <<'EOF'
 #!/bin/bash
 HERE="$(dirname "$(readlink -f "$0")")"
 export WINEPREFIX="${WINEPREFIX:-$HOME/.wine_pto2_cht}"
 mkdir -p "$WINEPREFIX"
+
+# 繁體中文環境：Wine 依 LANG 決定系統 codepage（zh_TW → cp950）
+export LANG=zh_TW.UTF-8
+export LC_ALL=zh_TW.UTF-8
+
+# 首次執行：註冊新細明體/PMingLiU → Noto Sans CJK TC 字型替代
+if [ ! -f "$WINEPREFIX/.pto2_font_ok" ]; then
+    wine reg add 'HKLM\Software\Microsoft\Windows NT\CurrentVersion\FontSubstitutes' \
+        /v 'PMingLiU' /d 'Noto Sans CJK TC' /f >/dev/null 2>&1
+    wine reg add 'HKLM\Software\Microsoft\Windows NT\CurrentVersion\FontSubstitutes' \
+        /v '新細明體' /d 'Noto Sans CJK TC' /f >/dev/null 2>&1
+    wine reg add 'HKCU\Software\Wine\WineDbg' /v ShowCrashDialog /t REG_DWORD /d 0 /f >/dev/null 2>&1
+    touch "$WINEPREFIX/.pto2_font_ok"
+fi
+
 cd "$HERE/usr/share/pto2-cht/PTO2WIN"
 exec wine explorer /desktop=pto2,800x600 TEKE2WIN.EXE "$@"
 EOF
